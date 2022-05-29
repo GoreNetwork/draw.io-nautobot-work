@@ -127,9 +127,81 @@ class {table_name}Serializer(ValidatedModelSerializer):
     to_doc_w(filename, output)
     
 
+def build_filters(table_name):
+    output = """from nautobot.utilities.filters import BaseFilterSet
+import django_filters
+from django.utils import timezone
+from .models import  """
+    for table in table_data:
+        table_name = table['name'].replace(' ','_')
+        output = output+f"{table_name}, "
+    output = output[:-2]
+    for table in table_data:
+        table_name = table['name'].replace(' ','_')
+        output = output+f"""
+
+class {table_name}FilterSet(django_filters.FilterSet):
+    class Meta:
+        model = {table_name}
+        fields = ("pk", """
+        for column in table['column']:
+            column = column.replace(' ','_')
+            output = output + f'"{column}", '
 
 
+        output = f"""{output})"""
+    filename = "filters.py"
+    to_doc_w(filename, output)
+    
 
+def build_api_views(table_data, api_path):
+    models = ''
+    serializers=''
+    filter_sets=''
+    num = 0
+    for each_table in table_data:
+        table_name = each_table['name'].replace(' ','_')
+        if num==0:
+            models = f"{models} {table_name}"
+            serializers=f"{serializers} {table_name}Serializer"
+            filter_sets=f"{filter_sets} {table_name}FilterSet"
+        else:
+            models = f"{models}, {table_name}"
+            serializers=f"{serializers}, {table_name}Serializer"
+            filter_sets=f"{filter_sets}, {table_name}FilterSet"
+        num = num+1
+        output = f"""from nautobot.core.api.views import ModelViewSet
+from NAME OF PLUGIN.models import {models}
+from .serializers import {serializers}
+from NAME OF PLUGIN.filters import {filter_sets}
+"""
+    for each_table in table_data:
+        table_name = each_table['name'].replace(' ','_')
+        output=f"""{output}
+    
+class {table_name}ViewSet(ModelViewSet):
+    queryset = {table_name}.objects.all()
+    filterset_class = {table_name}FilterSet
+    serializer_class = {table_name}Serializer
+    """
+    filename = f"{api_path}/views.py"
+    to_doc_w(filename, output)    
+
+
+def build_api_urls(table_data, api_path):
+    output = """from nautobot.core.api.routers import OrderedDefaultRouter
+from NAME OF PLUGIN HERE.api import views
+
+router = OrderedDefaultRouter()
+
+"""
+    for each_table in table_data:
+        table_name = each_table['name'].replace(' ','_')
+        output=f"""{output}router.register("", views.{table_name}ViewSet)
+"""
+    output = f"{output}urlpatterns = router.urls"
+    filename = f"{api_path}/urls.py"
+    to_doc_w(filename, output)    
 
 
 def build_api_data(table_data):
@@ -138,6 +210,9 @@ def build_api_data(table_data):
         os.makedirs(api_path)
     build__init__(api_path)
     build_serializers(table_data, api_path)
+    build_filters(table_data)
+    build_api_views(table_data, api_path)
+    build_api_urls(table_data, api_path)
 
 build_api_data(table_data)        
 
