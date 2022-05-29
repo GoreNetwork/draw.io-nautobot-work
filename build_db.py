@@ -6,6 +6,15 @@ from pprint import pprint
 import xmltodict
 import json
 import yaml
+import os
+# import argparse
+
+# parser = argparse.ArgumentParser(description='Builds out files for natubot from draw.io')
+# parser.add_argument("--plugin_name", help="the name used for the classes, example: SwitchHelper")
+# args = parser.parse_args()
+# pprint (dir(args.plugin_name))
+# plugin_name = args.plugin_name
+
 
 
 filename = "DB design (4).drawio"
@@ -60,12 +69,6 @@ def to_doc_w(file_name, varable):
 	f.write(varable)
 	f.close()	
 
-database_data_raw=readed_in_draw_io_file(filename)
-write_yml_file(database_data_raw, 'DB_data.yml')
-flat_data = build_flatened_data(database_data_raw)
-table_data = build_table_data(flat_data)            
-write_yml_file(table_data, 'table_data.yml')
-
 def build_models(table_data):
     model_data = '''"""Model definition for robot_platform_data."""
 from django.db import models
@@ -86,4 +89,56 @@ class {name}(model_type):
 
     to_doc_w('models.py', model_data)
 
-build_models(table_data)
+
+database_data_raw=readed_in_draw_io_file(filename)
+write_yml_file(database_data_raw, 'DB_data.yml')
+flat_data = build_flatened_data(database_data_raw)
+table_data = build_table_data(flat_data)            
+write_yml_file(table_data, 'table_data.yml')
+build_models(table_data,)
+
+
+
+def build__init__(api_path):
+    file_name = f"{api_path}/__init__.py"
+    to_doc_w(file_name, '')
+
+def build_serializers(table_data, api_path):
+    output = '''from nautobot.core.api.serializers import ValidatedModelSerializer
+from rest_framework.serializers import StringRelatedField
+from PLUGIN_NAME_HERE.models import '''
+    for table in table_data:
+        table_name = table['name'].replace(' ','_')
+        output = output+f"{table_name}, "
+    output = output[:-2]
+    for table in table_data:
+        table_name = table['name'].replace(' ','_')
+        output = output+f"""
+
+class {table_name}Serializer(ValidatedModelSerializer):
+        class Meta:
+            model = {table_name}
+            fields = ("pk", """
+        for column in table['column']:
+            column = column.replace(' ','_')
+            output = output + f'"{column}", '
+        output = f"""{output})"""
+    filename = f"{api_path}/serializers.py"
+    to_doc_w(filename, output)
+    
+
+
+
+
+
+
+def build_api_data(table_data):
+    api_path = "./api"
+    if os.path.exists(api_path)==False:
+        os.makedirs(api_path)
+    build__init__(api_path)
+    build_serializers(table_data, api_path)
+
+build_api_data(table_data)        
+
+
