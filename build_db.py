@@ -101,10 +101,17 @@ def to_doc_w(file_name, varable):
 	f.write(varable)
 	f.close()	
 
+def pull_source_table_for_fk(column):
+    column=column.replace("*","")
+    column=column.replace("ForeignKey:","")
+    column=column.replace(' ','_')
+    return column
+
 def build_models(table_data):
     model_data = '''"""Model definition for robot_platform_data."""
 from django.db import models
-from nautobot.core.models import BaseModel, OrganizationalModel, PrimaryModel
+from nautobot.core.models import BaseModel
+from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
 
 model_type=PUT YOUR MODEL TYPE HERE!!
@@ -122,12 +129,9 @@ class {name}(model_type):
                 model_data=model_data+ f"""    {column}=models.()
 """
             else:
-                column=column.replace("*","")
-                column=column.replace("ForeignKey:","")
-                column=column.replace(' ','_')
-                source_table = column
+                source_table = pull_source_table_for_fk(column)
                 key_name= f"{source_table}_FK"
-                model_data=f"""{model_data}    {key_name}=models.ForeignKey("{source_table}")
+                model_data=f"""{model_data}    {key_name}=models.ForeignKey("{source_table}", on_delete=models.RESTRICT)
 """
 
     to_doc_w('models.py', model_data)
@@ -164,6 +168,9 @@ class {table_name}Serializer(ValidatedModelSerializer):
             model = {table_name}
             fields = ("pk", """
         for column in table['column']:
+            if "***ForeignKey" in column:
+                source_table = pull_source_table_for_fk(column)
+                column= f"{source_table}_FK"
             column = column.replace(' ','_')
             output = output + f'"{column}", '
         output = f"""{output})"""
@@ -187,8 +194,11 @@ from .models import  """
 class {table_name}FilterSet(django_filters.FilterSet):
     class Meta:
         model = {table_name}
-        fields = ("pk", """
+        fields = ("""
         for column in table['column']:
+            if "***ForeignKey" in column:
+                source_table = pull_source_table_for_fk(column)
+                column= f"{source_table}_FK"
             column = column.replace(' ','_')
             output = output + f'"{column}", '
 
@@ -241,7 +251,7 @@ router = OrderedDefaultRouter()
 """
     for each_table in table_data:
         table_name = each_table['name'].replace(' ','_')
-        output=f"""{output}router.register("", views.{table_name}ViewSet)
+        output=f"""{output}router.register("{table_name}", views.{table_name}ViewSet)
 """
     output = f"{output}urlpatterns = router.urls"
     filename = f"{api_path}/urls.py"
