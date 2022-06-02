@@ -17,7 +17,8 @@ import os
 
 
 
-filename = "DB design (4).drawio"
+# filename = "DB design (4).drawio"
+filename = "scrap_work.drawio"
 
 def readed_in_draw_io_file(filename):
 
@@ -33,24 +34,40 @@ def readed_in_draw_io_file(filename):
 
 def build_flatened_data(db_data_raw):
     output = {}
+    output['arrows'] = {}
     for cell in db_data_raw['mxGraphModel']['root']['mxCell']:
         if '@value' in cell:
             output[cell['@id']]={}
             output[cell['@id']]['value']=cell['@value']
             output[cell['@id']]['parent']=cell['@parent']
+        if '@edge' in cell:
+            output['arrows'][cell['@id']]={}
+            output['arrows'][cell['@id']]={}
+            output['arrows'][cell['@id']]['source']=cell['@source']
+            output['arrows'][cell['@id']]['target']=cell['@target']
+
 
     write_yml_file(output, 'flat_DB_data.yml')
 
     return output
 
 def write_yml_file(dictionary, output_file_name):
-    with open('output_file_name', 'w') as outfile:
+    with open(output_file_name, 'w') as outfile:
         yaml.dump(dictionary, outfile)
+
+def find_table_value_from_column_value(input, key):
+    parent_id = input[key]['parent']
+    return input[parent_id]['value']
+
+
+
 
 def build_table_data(input):
     tables = {}
     columns = []
     for each in input:
+        if each=="arrows":
+            continue
         if input[each]['parent']=='1':
             tables[each]={}
             tables[each]['name']=input[each]['value']
@@ -62,6 +79,21 @@ def build_table_data(input):
     output =[]
     for each in tables:
         output.append(tables[each])
+
+    for each in input['arrows']:
+        relationship={}
+        relationship['relationship']={}
+        source_cell_id = input['arrows'][each]['source']
+        target_cell_id = input['arrows'][each]['target']
+        source=find_table_value_from_column_value(input,source_cell_id)
+        target=find_table_value_from_column_value(input,target_cell_id)
+        for each in output:
+            if each['name'] == target:
+                each['column'].append(f"***ForeignKey:{source}***")
+
+
+
+    
     return output
 
 def to_doc_w(file_name, varable):
@@ -78,19 +110,31 @@ from datetime import datetime
 model_type=PUT YOUR MODEL TYPE HERE!!
 '''
     for each in table_data:
+        if 'relationship' in each:
+            continue
         name = each['name'].replace(' ','_')
         model_data=model_data+ f"""
 class {name}(model_type):
 """
         for column in each['column']:
-            column=column.replace(' ','_')
-            model_data=model_data+ f"""    {column}=models.   ()
+            if "***ForeignKey" not in column:
+                column=column.replace(' ','_')
+                model_data=model_data+ f"""    {column}=models.()
+"""
+            else:
+                column=column.replace("*","")
+                column=column.replace("ForeignKey:","")
+                column=column.replace(' ','_')
+                source_table = column
+                key_name= f"{source_table}_FK"
+                model_data=f"""{model_data}    {key_name}=models.ForeignKey("{source_table}")
 """
 
     to_doc_w('models.py', model_data)
 
 
 database_data_raw=readed_in_draw_io_file(filename)
+write_yml_file(database_data_raw, 'raw_data.yml')
 write_yml_file(database_data_raw, 'DB_data.yml')
 flat_data = build_flatened_data(database_data_raw)
 table_data = build_table_data(flat_data)            
