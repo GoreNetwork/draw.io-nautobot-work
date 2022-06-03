@@ -20,6 +20,21 @@ from constants import *
 
 # filename = "DB design (4).drawio"
 filename = "scrap_work.drawio"
+filename = 'nautobot_robot_platform_data.drawio'
+project_name = filename.split('.')[0]
+
+def normalize_column_name(column):
+    if "***ForeignKey" in column:
+        source_table = pull_source_table_for_fk(column)
+        column= f"{source_table}_FK"
+    if column == "PK" or column[-3:]=="_PK":
+        return None
+    column = column.replace(' ','_')
+    return column
+
+def normalise_table_name(table_name):
+    table_name=table_name.replace(' ','_')
+    return table_name
 
 def readed_in_draw_io_file(filename):
 
@@ -109,72 +124,56 @@ def pull_source_table_for_fk(column):
     return column
 
 def build_models(table_data):
-    model_data = '''"""Model definition for robot_platform_data."""
-from django.db import models
-from nautobot.core.models import BaseModel
-from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
-from datetime import datetime
+#     model_data = '''"""Model definition for robot_platform_data."""
+# from django.db import models
+# from nautobot.core.models import BaseModel
+# from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
+# from datetime import datetime
 
-model_type=PUT YOUR MODEL TYPE HERE!!
-'''
+# model_type=PUT YOUR MODEL TYPE HERE!!
+# '''
+    model_data = model_table_imports.render()
     for each in table_data:
         if 'relationship' in each:
             continue
-        name = each['name'].replace(' ','_')
-        model_data=model_data+ f"""
-class {name}(model_type):
-"""
+        table_name = normalise_table_name(each['name'])
+        model_data=model_data+model_class_head_template.render(table_name=table_name)
         for column in each['column']:
             if "***ForeignKey" not in column:
+                column=normalize_column_name(column)
+                if column==None:
+                    continue
                 column=column.replace(' ','_')
-                model_data=model_data+ f"""    {column}=models.()
-"""
+                model_data=model_data+model_class_body_non_foreign_key.render(column=column)
             else:
                 source_table = pull_source_table_for_fk(column)
                 key_name= f"{source_table}_FK"
-                model_data=f"""{model_data}    {key_name}=models.ForeignKey("{source_table}", on_delete=models.RESTRICT)
-"""
-
-    to_doc_w('models.py', model_data)
-
-
-database_data_raw=readed_in_draw_io_file(filename)
-write_yml_file(database_data_raw, 'raw_data.yml')
-write_yml_file(database_data_raw, 'DB_data.yml')
-flat_data = build_flatened_data(database_data_raw)
-table_data = build_table_data(flat_data)            
-write_yml_file(table_data, 'table_data.yml')
-build_models(table_data,)
-
-
+                model_data=model_data+model_class_body_foreign_key.render(source_table=source_table, key_name=key_name)
+                
+    filename= project_name+"/models.py"
+    to_doc_w(filename, model_data)
 
 def build__init__(api_path):
     file_name = f"{api_path}/__init__.py"
     to_doc_w(file_name, '')
 
 def build_serializers(table_data, api_path):
-    output = '''from nautobot.core.api.serializers import ValidatedModelSerializer
-from rest_framework.serializers import StringRelatedField
-from PLUGIN_NAME_HERE.models import '''
+    table_names = []
     for table in table_data:
-        table_name = table['name'].replace(' ','_')
-        output = output+f"{table_name}, "
-    output = output[:-2]
+        table_name = normalise_table_name(table['name'])
+        table_names.append(table_name)
+    output = seralizer_imports.render(project_name=project_name, table_names=table_names)
     for table in table_data:
-        table_name = table['name'].replace(' ','_')
-        output = output+f"""
+        columns = []
+        table_name = normalise_table_name(table['name'])
 
-class {table_name}Serializer(ValidatedModelSerializer):
-        class Meta:
-            model = {table_name}
-            fields = ("pk", """
         for column in table['column']:
-            if "***ForeignKey" in column:
-                source_table = pull_source_table_for_fk(column)
-                column= f"{source_table}_FK"
+            column = normalize_column_name(column)
+            if column==None:
+                continue
             column = column.replace(' ','_')
-            output = output + f'"{column}", '
-        output = f"""{output})"""
+            columns.append(column)
+        output = output+serlizer_classes.render(table_name=table_name, columns=columns)
     filename = f"{api_path}/serializers.py"
     to_doc_w(filename, output)
     
@@ -185,11 +184,11 @@ import django_filters
 from django.utils import timezone
 from .models import  """
     for table in table_data:
-        table_name = table['name'].replace(' ','_')
+        table_name = normalise_table_name(table['name'])
         output = output+f"{table_name}, "
     output = output[:-2]
     for table in table_data:
-        table_name = table['name'].replace(' ','_')
+        table_name = normalise_table_name(table['name'])
         output = output+f"""
 
 class {table_name}FilterSet(django_filters.FilterSet):
@@ -197,15 +196,15 @@ class {table_name}FilterSet(django_filters.FilterSet):
         model = {table_name}
         fields = ("""
         for column in table['column']:
-            if "***ForeignKey" in column:
-                source_table = pull_source_table_for_fk(column)
-                column= f"{source_table}_FK"
+            column = normalize_column_name(column)
+            if column==None:
+                continue
             column = column.replace(' ','_')
             output = output + f'"{column}", '
 
 
         output = f"""{output})"""
-    filename = "filters.py"
+    filename = f"{project_name}/filters.py"
     to_doc_w(filename, output)
     
 
@@ -215,7 +214,7 @@ def build_api_views(table_data, api_path):
     filter_sets=''
     num = 0
     for each_table in table_data:
-        table_name = each_table['name'].replace(' ','_')
+        table_name = normalise_table_name(each_table['name'])
         if num==0:
             models = f"{models} {table_name}"
             serializers=f"{serializers} {table_name}Serializer"
@@ -226,12 +225,12 @@ def build_api_views(table_data, api_path):
             filter_sets=f"{filter_sets}, {table_name}FilterSet"
         num = num+1
         output = f"""from nautobot.core.api.views import ModelViewSet
-from NAME OF PLUGIN.models import {models}
+from {project_name}.models import {models}
 from .serializers import {serializers}
-from NAME OF PLUGIN.filters import {filter_sets}
+from {project_name}.filters import {filter_sets}
 """
     for each_table in table_data:
-        table_name = each_table['name'].replace(' ','_')
+        table_name = normalise_table_name(each_table['name'])
         output=f"""{output}
     
 class {table_name}ViewSet(ModelViewSet):
@@ -244,14 +243,14 @@ class {table_name}ViewSet(ModelViewSet):
 
 
 def build_api_urls(table_data, api_path):
-    output = """from nautobot.core.api.routers import OrderedDefaultRouter
-from NAME OF PLUGIN HERE.api import views
+    output = f"""from nautobot.core.api.routers import OrderedDefaultRouter
+from {project_name}.api import views
 
 router = OrderedDefaultRouter()
 
 """
     for each_table in table_data:
-        table_name = each_table['name'].replace(' ','_')
+        table_name = normalise_table_name(each_table['name'])
         output=f"""{output}router.register("{table_name}", views.{table_name}ViewSet)
 """
     output = f"{output}urlpatterns = router.urls"
@@ -260,7 +259,10 @@ router = OrderedDefaultRouter()
 
 
 def build_api_data(table_data):
-    api_path = "./api"
+    api_path = f"./{project_name}"
+    if os.path.exists(api_path)==False:
+        os.makedirs(api_path)
+    api_path = f"{project_name}/api"
     if os.path.exists(api_path)==False:
         os.makedirs(api_path)
     build__init__(api_path)
@@ -269,30 +271,29 @@ def build_api_data(table_data):
     build_api_views(table_data, api_path)
     build_api_urls(table_data, api_path)
 
-build_api_data(table_data)    
-
-def normalize_column_name(column):
-    if "***ForeignKey" in column:
-        source_table = pull_source_table_for_fk(column)
-        column= f"{source_table}_FK"
-    column = column.replace(' ','_')
-    return column
+database_data_raw=readed_in_draw_io_file(filename)
+flat_data = build_flatened_data(database_data_raw)
+table_data = build_table_data(flat_data)     
+build_api_data(table_data)   
+build_models(table_data,)
 
 def build_admin(table_data):
     table_name_list = []
     for table in table_data:
         table_name_list.append(table['name'])
-    output=admin_table_imports.render(table_name_list=table_name_list)
+    output=admin_table_imports.render(table_name_list=table_name_list, project_name=project_name)
     for table in table_data:
         table_name = table['name']
         columns = []
         for column in table['column']:
             column = normalize_column_name(column)
+            if column==None:
+                continue
             columns.append(column)
         admin_class = admin_class_template.render(table_name =table_name, columns=columns)
         output = f"{output} {admin_class}"
-    print (output)
-    to_doc_w('admin.py', output) 
+    filename= f"{project_name}/admin.py"
+    to_doc_w(filename, output) 
 
 build_admin(table_data)
 
