@@ -43,5 +43,19 @@ class {{table_name}}Serializer(ValidatedModelSerializer):
         class Meta:
             model = {{table_name}}
             fields = ("pk", "{{ columns | join('", "')}}")
-            
+
+""")
+
+filter_imports=Template("""from nautobot.utilities.filters import BaseFilterSet
+import django_filters
+from django.utils import timezone
+from .models import  {{ tables | join(', ')}}
+
+""")
+filter_classes=Template("""
+class {{table_name}}FilterSet(django_filters.FilterSet):
+    class Meta:
+        model = {{ table_name }}
+        fields = ("{{ columns | join('", "')}}")
+
 """)
