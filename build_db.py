@@ -47,6 +47,11 @@ def readed_in_draw_io_file(filename):
     return my_dict
 
 
+def find_tables(table_data):
+    tables = []
+    for table in table_data:
+        tables.append(table['name'])
+    return tables
 
 def build_flatened_data(db_data_raw):
     output = {}
@@ -124,14 +129,6 @@ def pull_source_table_for_fk(column):
     return column
 
 def build_models(table_data):
-#     model_data = '''"""Model definition for robot_platform_data."""
-# from django.db import models
-# from nautobot.core.models import BaseModel
-# from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
-# from datetime import datetime
-
-# model_type=PUT YOUR MODEL TYPE HERE!!
-# '''
     model_data = model_table_imports.render()
     for each in table_data:
         if 'relationship' in each:
@@ -179,31 +176,20 @@ def build_serializers(table_data, api_path):
     
 
 def build_filters(table_name):
-    output = """from nautobot.utilities.filters import BaseFilterSet
-import django_filters
-from django.utils import timezone
-from .models import  """
-    for table in table_data:
-        table_name = normalise_table_name(table['name'])
-        output = output+f"{table_name}, "
-    output = output[:-2]
-    for table in table_data:
-        table_name = normalise_table_name(table['name'])
-        output = output+f"""
 
-class {table_name}FilterSet(django_filters.FilterSet):
-    class Meta:
-        model = {table_name}
-        fields = ("""
+    tables = find_tables(table_data)
+    output = filter_imports.render(tables=tables)
+
+    for table in table_data:
+        columns = []
         for column in table['column']:
             column = normalize_column_name(column)
             if column==None:
                 continue
             column = column.replace(' ','_')
-            output = output + f'"{column}", '
-
-
-        output = f"""{output})"""
+            columns.append(column)
+        table_name = normalise_table_name(table['name'])
+        output = output+filter_classes.render(table_name=table_name, columns=columns)
     filename = f"{project_name}/filters.py"
     to_doc_w(filename, output)
     
@@ -273,7 +259,7 @@ def build_api_data(table_data):
 
 database_data_raw=readed_in_draw_io_file(filename)
 flat_data = build_flatened_data(database_data_raw)
-table_data = build_table_data(flat_data)     
+table_data = build_table_data(flat_data)    
 build_api_data(table_data)   
 build_models(table_data,)
 
