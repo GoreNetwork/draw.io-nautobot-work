@@ -7,6 +7,7 @@ import xmltodict
 import json
 import yaml
 import os
+from constants import *
 # import argparse
 
 # parser = argparse.ArgumentParser(description='Builds out files for natubot from draw.io')
@@ -268,6 +269,31 @@ def build_api_data(table_data):
     build_api_views(table_data, api_path)
     build_api_urls(table_data, api_path)
 
-build_api_data(table_data)        
+build_api_data(table_data)    
+
+def normalize_column_name(column):
+    if "***ForeignKey" in column:
+        source_table = pull_source_table_for_fk(column)
+        column= f"{source_table}_FK"
+    column = column.replace(' ','_')
+    return column
+
+def build_admin(table_data):
+    table_name_list = []
+    for table in table_data:
+        table_name_list.append(table['name'])
+    output=admin_table_imports.render(table_name_list=table_name_list)
+    for table in table_data:
+        table_name = table['name']
+        columns = []
+        for column in table['column']:
+            column = normalize_column_name(column)
+            columns.append(column)
+        admin_class = admin_class_template.render(table_name =table_name, columns=columns)
+        output = f"{output} {admin_class}"
+    print (output)
+    to_doc_w('admin.py', output) 
+
+build_admin(table_data)
 
 
