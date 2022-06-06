@@ -8,18 +8,8 @@ import json
 import yaml
 import os
 from constants import *
-# import argparse
 
-# parser = argparse.ArgumentParser(description='Builds out files for natubot from draw.io')
-# parser.add_argument("--plugin_name", help="the name used for the classes, example: SwitchHelper")
-# args = parser.parse_args()
-# pprint (dir(args.plugin_name))
-# plugin_name = args.plugin_name
-
-
-
-# filename = "DB design (4).drawio"
-filename = "scrap_work.drawio"
+# filename = "scrap_work.drawio"
 filename = 'nautobot_robot_platform_data.drawio'
 project_name = filename.split('.')[0]
 
@@ -173,7 +163,6 @@ def build_serializers(table_data, api_path):
         output = output+serlizer_classes.render(table_name=table_name, columns=columns)
     filename = f"{api_path}/serializers.py"
     to_doc_w(filename, output)
-    
 
 def build_filters(table_name):
 
@@ -195,51 +184,30 @@ def build_filters(table_name):
     
 
 def build_api_views(table_data, api_path):
-    models = ''
-    serializers=''
-    filter_sets=''
-    num = 0
-    for each_table in table_data:
-        table_name = normalise_table_name(each_table['name'])
-        if num==0:
-            models = f"{models} {table_name}"
-            serializers=f"{serializers} {table_name}Serializer"
-            filter_sets=f"{filter_sets} {table_name}FilterSet"
-        else:
-            models = f"{models}, {table_name}"
-            serializers=f"{serializers}, {table_name}Serializer"
-            filter_sets=f"{filter_sets}, {table_name}FilterSet"
-        num = num+1
-        output = f"""from nautobot.core.api.views import ModelViewSet
-from {project_name}.models import {models}
-from .serializers import {serializers}
-from {project_name}.filters import {filter_sets}
-"""
-    for each_table in table_data:
-        table_name = normalise_table_name(each_table['name'])
-        output=f"""{output}
+    tables = find_tables(table_data)
+    output = api_views_imports.render(tables=tables, project_name=project_name)
+
+    for table in tables:
+        table_name = normalise_table_name(table)
+        output=output+api_classes_imports.render(table=table)
     
-class {table_name}ViewSet(ModelViewSet):
-    queryset = {table_name}.objects.all()
-    filterset_class = {table_name}FilterSet
-    serializer_class = {table_name}Serializer
-    """
     filename = f"{api_path}/views.py"
     to_doc_w(filename, output)    
 
 
 def build_api_urls(table_data, api_path):
-    output = f"""from nautobot.core.api.routers import OrderedDefaultRouter
-from {project_name}.api import views
+#     output = f"""from nautobot.core.api.routers import OrderedDefaultRouter
+# from {project_name}.api import views
 
-router = OrderedDefaultRouter()
+# router = OrderedDefaultRouter()
 
-"""
+# """
+    output = api_urls_imports.render(project_name=project_name)
+
     for each_table in table_data:
         table_name = normalise_table_name(each_table['name'])
-        output=f"""{output}router.register("{table_name}", views.{table_name}ViewSet)
-"""
-    output = f"{output}urlpatterns = router.urls"
+        output = output+api_urls_classes.render(table_name=table_name)
+    output = output+"urlpatterns = router.urls"
     filename = f"{api_path}/urls.py"
     to_doc_w(filename, output)    
 

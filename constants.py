@@ -59,3 +59,30 @@ class {{table_name}}FilterSet(django_filters.FilterSet):
         fields = ("{{ columns | join('", "')}}")
 
 """)
+
+api_views_imports=Template("""from nautobot.core.api.views import ModelViewSet
+from {{project_name}}.models import {{ tables | join(', ')}}
+from .serializers import {{ tables | join('Serializer, ')}}Serializer
+from {{project_name}}.filters import {{ tables | join('FilterSet, ')}}FilterSet
+
+""")
+
+api_classes_imports=Template("""
+class {{ table }}ViewSet(ModelViewSet):
+    queryset = {{ table }}.objects.all()
+    filterset_class = {{ table }}FilterSet
+    serializer_class = {{ table }}Serializer
+
+""")
+
+api_urls_imports=Template("""from nautobot.core.api.routers import OrderedDefaultRouter
+from {{project_name}}.api import views
+
+router = OrderedDefaultRouter()
+
+""")
+
+api_urls_classes=Template("""router.register("{{ table_name }}", views.{{ table_name }}ViewSet)
+
+""")
+
