@@ -9,8 +9,8 @@ import yaml
 import os
 from constants import *
 
-# filename = "scrap_work.drawio"
-filename = 'nautobot_robot_platform_data.drawio'
+# filename = 'nautobot_robot_platform_data.drawio'
+filename = "plugin_builder_test.drawio"
 project_name = filename.split('.')[0]
 
 def normalize_column_name(column):
@@ -135,7 +135,7 @@ def build_models(table_data):
             else:
                 source_table = pull_source_table_for_fk(column)
                 key_name= f"{source_table}_FK"
-                model_data=model_data+model_class_body_foreign_key.render(source_table=source_table, key_name=key_name)
+                model_data=model_data+model_class_body_foreign_key.render(project_name=project_name, source_table=source_table, key_name=key_name)
                 
     filename= project_name+"/models.py"
     to_doc_w(filename, model_data)
@@ -196,14 +196,7 @@ def build_api_views(table_data, api_path):
 
 
 def build_api_urls(table_data, api_path):
-#     output = f"""from nautobot.core.api.routers import OrderedDefaultRouter
-# from {project_name}.api import views
-
-# router = OrderedDefaultRouter()
-
-# """
     output = api_urls_imports.render(project_name=project_name)
-
     for each_table in table_data:
         table_name = normalise_table_name(each_table['name'])
         output = output+api_urls_classes.render(table_name=table_name)

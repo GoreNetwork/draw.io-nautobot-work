@@ -8,7 +8,7 @@ from {{project_name}}.models import {{ table_name_list | join(', ')}}
 admin_class_template = Template("""
 @admin.register({{table_name}})
 class {{table_name}}Admin(admin.ModelAdmin):
-    list_display = ( \"{{columns | join('", "')}}\")
+    list_display = ( \"{{columns | join('", "')}}\",)
     
 """)
 
@@ -18,6 +18,7 @@ from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
 
 model_type=PUT YOUR MODEL TYPE HERE!!
+default_on_delete = models.RESTRICT
 ''')
 
 model_class_head_template=Template("""
@@ -26,10 +27,10 @@ class {{table_name}}(model_type):
 """)
 
 model_class_body_non_foreign_key=Template("""
-    {{ column }}=models.()
+    {{ column }}=models.TextField()
 """)
 model_class_body_foreign_key=Template("""
-    {{ key_name }}=models.ForeignKey("{{source_table}}", on_delete=models.RESTRICT)
+    {{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete)
 """)
 
 seralizer_imports=Template("""from nautobot.core.api.serializers import ValidatedModelSerializer
@@ -56,7 +57,7 @@ filter_classes=Template("""
 class {{table_name}}FilterSet(django_filters.FilterSet):
     class Meta:
         model = {{ table_name }}
-        fields = ("{{ columns | join('", "')}}")
+        fields = ("{{ columns | join('", "')}}",)
 
 """)
 
