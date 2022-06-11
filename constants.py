@@ -17,7 +17,7 @@ from nautobot.core.models import BaseModel
 from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
 
-model_type=PUT YOUR MODEL TYPE HERE!!
+model_type=PrimaryModel
 default_on_delete = models.RESTRICT
 ''')
 
@@ -27,7 +27,7 @@ class {{table_name}}(model_type):
 """)
 
 model_class_body_non_foreign_key=Template("""
-    {{ column }}=models.TextField()
+    {{ column }}=models.{{feild_type}}()
 """)
 model_class_body_foreign_key=Template("""
     {{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete)

@@ -1,3 +1,4 @@
+from typing import List
 import zlib
 import base64
 import xml.etree.ElementTree as ET
@@ -19,7 +20,10 @@ def normalize_column_name(column):
         column= f"{source_table}_FK"
     if column == "PK" or column[-3:]=="_PK":
         return None
-    column = column.replace(' ','_')
+    column = column.replace(' ','')
+    if "," in column:
+        column = column.split(',')
+        column = column[0]
     return column
 
 def normalise_table_name(table_name):
@@ -118,20 +122,44 @@ def pull_source_table_for_fk(column):
     column=column.replace(' ','_')
     return column
 
+def normalize_column_name_for_models(column):
+    if "***ForeignKey" in column:
+        source_table = pull_source_table_for_fk(column)
+        column= f"{source_table}_FK"
+    if column == "PK" or column[-3:]=="_PK":
+        return None
+    column = column.replace(' ','')
+    
+    if "," in column:
+        column = column.split(',')
+    return column
+    
+
+
 def build_models(table_data):
     model_data = model_table_imports.render()
     for each in table_data:
+        pprint (each)
         if 'relationship' in each:
             continue
         table_name = normalise_table_name(each['name'])
+        print (table_name)
         model_data=model_data+model_class_head_template.render(table_name=table_name)
         for column in each['column']:
+            feild_type="TextField"
             if "***ForeignKey" not in column:
-                column=normalize_column_name(column)
-                if column==None:
+                if " " in column:
+                    print (table_name)
+                column=normalize_column_name_for_models(column)
+                if type(column)==list:
+                    key_name, feild_type =  column[0], column[1]
+                    print (key_name, feild_type)
+                    feild_type=feild_type.replace(' ','')
+                elif column==None:
                     continue
-                column=column.replace(' ','_')
-                model_data=model_data+model_class_body_non_foreign_key.render(column=column)
+                else:
+                    key_name = column
+                model_data=model_data+model_class_body_non_foreign_key.render(column=key_name, feild_type=feild_type)
             else:
                 source_table = pull_source_table_for_fk(column)
                 key_name= f"{source_table}_FK"
