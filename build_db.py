@@ -11,7 +11,7 @@ import os
 from constants import *
 
 # filename = 'nautobot_robot_platform_data.drawio'
-filename = "plugin_builder_test.drawio"
+filename = "scrap_work.drawio"
 project_name = filename.split('.')[0]
 
 def normalize_column_name(column):
@@ -39,7 +39,6 @@ def readed_in_draw_io_file(filename):
     xml = unquote(xml)
     my_dict = xmltodict.parse(xml, dict_constructor=dict)
     return my_dict
-
 
 def find_tables(table_data):
     tables = []
@@ -73,9 +72,6 @@ def write_yml_file(dictionary, output_file_name):
 def find_table_value_from_column_value(input, key):
     parent_id = input[key]['parent']
     return input[parent_id]['value']
-
-
-
 
 def build_table_data(input):
     tables = {}
@@ -133,17 +129,42 @@ def normalize_column_name_for_models(column):
     if "," in column:
         column = column.split(',')
     return column
-    
+
+def find_feild_types(table_data):
+    feild_types_in_tables=[]
+    for each in table_data:
+        if 'relationship' in each:
+            continue
+        for column in each['column']:
+            if "***ForeignKey" in column:
+                continue
+            column=normalize_column_name_for_models(column)
+            if type(column)==list:
+                key_name, feild_type =  column[0], column[1]
+                feild_types_in_tables.append(feild_type)
+    return feild_types_in_tables
+
+            
+
 
 
 def build_models(table_data):
-    model_data = model_table_imports.render()
+    defaults_for_fields={
+        'CharField': {"default_value_name":"max_length",
+                        "default_value":"None"},
+        "DateField": {"default_value_name":"auto_now","default_value":"False"},
+        
+    }
+    feild_types_in_tables = find_feild_types(table_data)
+    model_data = model_table_imports.render(feild_types_in_tables=feild_types_in_tables, defaults_for_fields=defaults_for_fields)
+     
+    pprint(feild_types_in_tables)
     for each in table_data:
-        pprint (each)
+        # pprint (each)
         if 'relationship' in each:
             continue
         table_name = normalise_table_name(each['name'])
-        print (table_name)
+        # print (table_name)
         model_data=model_data+model_class_head_template.render(table_name=table_name)
         for column in each['column']:
             feild_type="TextField"
@@ -209,7 +230,6 @@ def build_filters(table_name):
         output = output+filter_classes.render(table_name=table_name, columns=columns)
     filename = f"{project_name}/filters.py"
     to_doc_w(filename, output)
-    
 
 def build_api_views(table_data, api_path):
     tables = find_tables(table_data)
@@ -222,7 +242,6 @@ def build_api_views(table_data, api_path):
     filename = f"{api_path}/views.py"
     to_doc_w(filename, output)    
 
-
 def build_api_urls(table_data, api_path):
     output = api_urls_imports.render(project_name=project_name)
     for each_table in table_data:
@@ -231,7 +250,6 @@ def build_api_urls(table_data, api_path):
     output = output+"urlpatterns = router.urls"
     filename = f"{api_path}/urls.py"
     to_doc_w(filename, output)    
-
 
 def build_api_data(table_data):
     api_path = f"./{project_name}"

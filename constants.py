@@ -17,6 +17,9 @@ from nautobot.core.models import BaseModel
 from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
 
+#Default values for field uses
+{% for feild_types_in_table in feild_types_in_tables %}
+{{ feild_types_in_table }}_default={{ defaults_for_fields[feild_types_in_table]['default_value']}}{% endfor %}
 model_type=PrimaryModel
 default_on_delete = models.RESTRICT
 ''')
