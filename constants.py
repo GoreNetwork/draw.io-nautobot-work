@@ -17,8 +17,7 @@ from nautobot.core.models import BaseModel
 from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
 
-#Default values for field uses
-{% for feild_types_in_table in feild_types_in_tables %}
+#Default values for field uses, these are defined in build_db under build_models, defaults_for_fields{% for feild_types_in_table in feild_types_in_tables %}
 {{ feild_types_in_table }}_default={{ defaults_for_fields[feild_types_in_table]['default_value']}}{% endfor %}
 model_type=PrimaryModel
 default_on_delete = models.RESTRICT
@@ -29,9 +28,11 @@ model_class_head_template=Template("""
 class {{table_name}}(model_type):
 """)
 
-model_class_body_non_foreign_key=Template("""
-    {{ column }}=models.{{feild_type}}()
+model_class_body_non_foreign_key=Template("""{% if feild_type in defaults_for_fields %}
+    {{ column }}=models.{{feild_type}}({{defaults_for_fields[feild_type]["default_value_name"]}}={{feild_type}}_default){%- else %}
+    {{ column }}=models.{{feild_type}}(){%- endif %}
 """)
+
 model_class_body_foreign_key=Template("""
     {{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete)
 """)

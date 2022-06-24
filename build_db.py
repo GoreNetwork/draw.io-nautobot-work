@@ -150,11 +150,16 @@ def find_feild_types(table_data):
 
 def build_models(table_data):
     defaults_for_fields={
+        #"name of feild type": {"default_value_name":"thing that needs a default value",
+        #                    "default_value": "What the default value should be" },
         'CharField': {"default_value_name":"max_length",
                         "default_value":"None"},
-        "DateField": {"default_value_name":"auto_now","default_value":"False"},
-        
-    }
+        "DateField": {"default_value_name":"auto_now",
+                        "default_value":"False"},
+        "FilePathField":{"default_value_name":"path",
+                        "default_value":"Ted"}
+        }
+
     feild_types_in_tables = find_feild_types(table_data)
     model_data = model_table_imports.render(feild_types_in_tables=feild_types_in_tables, defaults_for_fields=defaults_for_fields)
      
@@ -180,7 +185,7 @@ def build_models(table_data):
                     continue
                 else:
                     key_name = column
-                model_data=model_data+model_class_body_non_foreign_key.render(column=key_name, feild_type=feild_type)
+                model_data=model_data+model_class_body_non_foreign_key.render(column=key_name, feild_type=feild_type, defaults_for_fields=defaults_for_fields)
             else:
                 source_table = pull_source_table_for_fk(column)
                 key_name= f"{source_table}_FK"
