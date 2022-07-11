@@ -11,7 +11,7 @@ import os
 from constants import *
 
 # filename = 'nautobot_robot_platform_data.drawio'
-filename = "scrap_work.drawio"
+filename = "nautobot_gorenetwork_plugin.drawio"
 project_name = filename.split('.')[0]
 
 def normalize_column_name(column):
@@ -153,7 +153,7 @@ def build_models(table_data):
         #"name of feild type": {"default_value_name":"thing that needs a default value",
         #                    "default_value": "What the default value should be" },
         'CharField': {"default_value_name":"max_length",
-                        "default_value":"None"},
+                        "default_value":"100"},
         "DateField": {"default_value_name":"auto_now",
                         "default_value":"False"},
         "FilePathField":{"default_value_name":"path",
