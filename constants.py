@@ -91,3 +91,37 @@ api_urls_classes=Template("""router.register("{{ table_name }}", views.{{ table_
 
 """)
 
+setup_file = Template("""from setuptools import find_packages, setup
+
+setup(
+    name='{{project_name}}',
+    version='0.1',
+    description='{{plugin_description}}',
+    author='{{plugin_author}}',
+    packages=find_packages(),
+    include_package_data=True,
+)
+
+""")
+
+init_file = Template("""
+
+from nautobot.extras.plugins import PluginConfig
+
+class {{project_name}}Config(PluginConfig):
+
+    name = "{{project_name}}"
+    verbose_name = "{{project_name}}"
+    author = "{{plugin_author}}"
+    description = "{{project_name}}"
+    base_url = "{{project_name}}"
+    required_settings = []
+    min_version = "1.1.0"
+    max_version = "1.9999"
+    default_settings = {}
+    caching_config = {}
+
+
+config = {{project_name}}Config
+
+""")

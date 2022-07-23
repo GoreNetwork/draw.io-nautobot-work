@@ -10,9 +10,24 @@ import yaml
 import os
 from constants import *
 
-# filename = 'nautobot_robot_platform_data.drawio'
-filename = "nautobot_gorenetwork_plugin.drawio"
-project_name = filename.split('.')[0]
+
+if os.environ.get('project_name')==None:
+    project_name = input("The name of the draw.io file should be the name of the plugin.  Please enter the name of the plugin (Example: dnd_builder.drawio would be dnd_builder): ")
+    os.environ['project_name']=project_name
+project_name = os.environ.get('project_name')
+
+
+tmp_paths = [
+    f'./{project_name}_files',
+    f'./{project_name}_files/plugin',
+    f'./{project_name}_files/plugin/{project_name}',
+    f'./{project_name}_files/plugin/{project_name}/api',
+]
+for path in tmp_paths:
+    if os.path.exists(path)==False:
+            os.makedirs(path)
+
+filename = f"{project_name}.drawio"
 
 def normalize_column_name(column):
     if "***ForeignKey" in column:
@@ -191,11 +206,11 @@ def build_models(table_data):
                 key_name= f"{source_table}_FK"
                 model_data=model_data+model_class_body_foreign_key.render(project_name=project_name, source_table=source_table, key_name=key_name)
                 
-    filename= project_name+"/models.py"
+    filename= f'./{project_name}_files/plugin/{project_name}/models.py'
     to_doc_w(filename, model_data)
 
 def build__init__(api_path):
-    file_name = f"{api_path}/__init__.py"
+    file_name = f'./{api_path }/__init__.py'
     to_doc_w(file_name, '')
 
 def build_serializers(table_data, api_path):
@@ -215,7 +230,7 @@ def build_serializers(table_data, api_path):
             column = column.replace(' ','_')
             columns.append(column)
         output = output+serlizer_classes.render(table_name=table_name, columns=columns)
-    filename = f"{api_path}/serializers.py"
+    filename = f"./{api_path}/serializers.py"
     to_doc_w(filename, output)
 
 def build_filters(table_name):
@@ -233,7 +248,7 @@ def build_filters(table_name):
             columns.append(column)
         table_name = normalise_table_name(table['name'])
         output = output+filter_classes.render(table_name=table_name, columns=columns)
-    filename = f"{project_name}/filters.py"
+    filename = f"./{project_name}_files/plugin/{project_name}/filters.py"
     to_doc_w(filename, output)
 
 def build_api_views(table_data, api_path):
@@ -244,7 +259,7 @@ def build_api_views(table_data, api_path):
         table_name = normalise_table_name(table)
         output=output+api_classes_imports.render(table=table)
     
-    filename = f"{api_path}/views.py"
+    filename = f'./{api_path }/views.py'
     to_doc_w(filename, output)    
 
 def build_api_urls(table_data, api_path):
@@ -253,14 +268,14 @@ def build_api_urls(table_data, api_path):
         table_name = normalise_table_name(each_table['name'])
         output = output+api_urls_classes.render(table_name=table_name)
     output = output+"urlpatterns = router.urls"
-    filename = f"{api_path}/urls.py"
+    filename = f"./{api_path }/urls.py"
     to_doc_w(filename, output)    
 
 def build_api_data(table_data):
-    api_path = f"./{project_name}"
+    api_path = f"./{project_name}_files/plugin/{project_name}/api"
     if os.path.exists(api_path)==False:
         os.makedirs(api_path)
-    api_path = f"{project_name}/api"
+    api_path = f"./{project_name}_files/plugin/{project_name}/api"
     if os.path.exists(api_path)==False:
         os.makedirs(api_path)
     build__init__(api_path)
@@ -290,7 +305,7 @@ def build_admin(table_data):
             columns.append(column)
         admin_class = admin_class_template.render(table_name =table_name, columns=columns)
         output = f"{output} {admin_class}"
-    filename= f"{project_name}/admin.py"
+    filename= f"./{project_name}_files/plugin/{project_name}/admin.py"
     to_doc_w(filename, output) 
 
 build_admin(table_data)
