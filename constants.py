@@ -1,18 +1,23 @@
 from jinja2 import Template
 
 
-admin_table_imports=Template("""from django.contrib import admin
+admin_table_imports = Template(
+    """from django.contrib import admin
 from {{project_name}}.models import {{ table_name_list | join(', ')}} 
-""")
+"""
+)
 
-admin_class_template = Template("""
+admin_class_template = Template(
+    """
 @admin.register({{table_name}})
 class {{table_name}}Admin(admin.ModelAdmin):
     list_display = ( \"{{columns | join('", "')}}\",)
     
-""")
+"""
+)
 
-model_table_imports=Template('''from django.db import models
+model_table_imports = Template(
+    """from django.db import models
 from nautobot.core.models import BaseModel
 from nautobot.core.models.generics import OrganizationalModel, PrimaryModel
 from datetime import datetime
@@ -21,77 +26,101 @@ from datetime import datetime
 {{ feild_types_in_table }}_default={{ defaults_for_fields[feild_types_in_table]['default_value']}}{% endfor %}
 model_type=PrimaryModel
 default_on_delete = models.RESTRICT
-''')
+"""
+)
 
-model_class_head_template=Template("""
+model_class_head_template = Template(
+    """
 
 class {{table_name}}(model_type):
-""")
+"""
+)
 
-model_class_body_non_foreign_key=Template("""{% if feild_type in defaults_for_fields %}
+model_class_body_non_foreign_key = Template(
+    """{% if feild_type in defaults_for_fields %}
     {{ column }}=models.{{feild_type}}({{defaults_for_fields[feild_type]["default_value_name"]}}={{feild_type}}_default){%- else %}
     {{ column }}=models.{{feild_type}}(){%- endif %}
-""")
+"""
+)
 
-model_class_body_foreign_key=Template("""
+model_class_body_foreign_key = Template(
+    """
     {{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete)
-""")
+"""
+)
 
-seralizer_imports=Template("""from nautobot.core.api.serializers import ValidatedModelSerializer
+seralizer_imports = Template(
+    """from nautobot.core.api.serializers import ValidatedModelSerializer
 from rest_framework.serializers import StringRelatedField
 from {{ project_name }}.models import {{ table_names | join(', ')}} 
 
-""")
+"""
+)
 
-serlizer_classes=Template("""
+serlizer_classes = Template(
+    """
 class {{table_name}}Serializer(ValidatedModelSerializer):
         class Meta:
             model = {{table_name}}
             fields = ("pk", "{{ columns | join('", "')}}")
 
-""")
+"""
+)
 
-filter_imports=Template("""from nautobot.utilities.filters import BaseFilterSet
+filter_imports = Template(
+    """from nautobot.utilities.filters import BaseFilterSet
 import django_filters
 from django.utils import timezone
 from .models import  {{ tables | join(', ')}}
 
-""")
-filter_classes=Template("""
+"""
+)
+filter_classes = Template(
+    """
 class {{table_name}}FilterSet(django_filters.FilterSet):
     class Meta:
         model = {{ table_name }}
         fields = ("{{ columns | join('", "')}}",)
 
-""")
+"""
+)
 
-api_views_imports=Template("""from nautobot.core.api.views import ModelViewSet
+api_views_imports = Template(
+    """from nautobot.core.api.views import ModelViewSet
 from {{project_name}}.models import {{ tables | join(', ')}}
 from .serializers import {{ tables | join('Serializer, ')}}Serializer
 from {{project_name}}.filters import {{ tables | join('FilterSet, ')}}FilterSet
 
-""")
+"""
+)
 
-api_classes_imports=Template("""
+api_classes_imports = Template(
+    """
 class {{ table }}ViewSet(ModelViewSet):
     queryset = {{ table }}.objects.all()
     filterset_class = {{ table }}FilterSet
     serializer_class = {{ table }}Serializer
 
-""")
+"""
+)
 
-api_urls_imports=Template("""from nautobot.core.api.routers import OrderedDefaultRouter
+api_urls_imports = Template(
+    """from nautobot.core.api.routers import OrderedDefaultRouter
 from {{project_name}}.api import views
 
 router = OrderedDefaultRouter()
 
-""")
+"""
+)
 
-api_urls_classes=Template("""router.register("{{ table_name }}", views.{{ table_name }}ViewSet)
+api_urls_classes = Template(
+    """router.register("{{ table_name }}", views.{{ table_name }}ViewSet)
 
-""")
+"""
+)
 
-setup_file = Template("""from setuptools import find_packages, setup
+setup_file = Template(
+    """from setuptools import find_packages, setup
 
 setup(
     name='{{project_name}}',
@@ -102,9 +131,11 @@ setup(
     include_package_data=True,
 )
 
-""")
+"""
+)
 
-init_file = Template("""
+init_file = Template(
+    """
 
 from nautobot.extras.plugins import PluginConfig
 
@@ -124,4 +155,5 @@ class {{project_name}}Config(PluginConfig):
 
 config = {{project_name}}Config
 
-""")
+"""
+)

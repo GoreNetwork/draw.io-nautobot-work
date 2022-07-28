@@ -1,0 +1,91 @@
+DiFV6sPVZ-eXnUN2MA-i-1:
+  parent: b2Cxm9wKgWrcusrGVPnU-26
+  value: item_rarity
+arrows:
+  B54fVvLI6bd12E4ZGiML-1:
+    source: b2Cxm9wKgWrcusrGVPnU-20
+    target: b2Cxm9wKgWrcusrGVPnU-2
+b2Cxm9wKgWrcusrGVPnU-1:
+  parent: '1'
+  value: Backgrounds
+b2Cxm9wKgWrcusrGVPnU-10:
+  parent: b2Cxm9wKgWrcusrGVPnU-5
+  value: service_price_high
+b2Cxm9wKgWrcusrGVPnU-11:
+  parent: '1'
+  value: ServiceNames
+b2Cxm9wKgWrcusrGVPnU-12:
+  parent: b2Cxm9wKgWrcusrGVPnU-11
+  value: name_part
+b2Cxm9wKgWrcusrGVPnU-13:
+  parent: b2Cxm9wKgWrcusrGVPnU-11
+  value: Name
+b2Cxm9wKgWrcusrGVPnU-17:
+  parent: '1'
+  value: CharName
+b2Cxm9wKgWrcusrGVPnU-18:
+  parent: b2Cxm9wKgWrcusrGVPnU-17
+  value: race
+b2Cxm9wKgWrcusrGVPnU-19:
+  parent: b2Cxm9wKgWrcusrGVPnU-17
+  value: name_part
+b2Cxm9wKgWrcusrGVPnU-2:
+  parent: b2Cxm9wKgWrcusrGVPnU-1
+  value: background
+b2Cxm9wKgWrcusrGVPnU-20:
+  parent: b2Cxm9wKgWrcusrGVPnU-17
+  value: name
+b2Cxm9wKgWrcusrGVPnU-21:
+  parent: b2Cxm9wKgWrcusrGVPnU-17
+  value: sex
+b2Cxm9wKgWrcusrGVPnU-22:
+  parent: '1'
+  value: StoreName
+b2Cxm9wKgWrcusrGVPnU-23:
+  parent: b2Cxm9wKgWrcusrGVPnU-22
+  value: store_type
+b2Cxm9wKgWrcusrGVPnU-24:
+  parent: b2Cxm9wKgWrcusrGVPnU-22
+  value: name_part
+b2Cxm9wKgWrcusrGVPnU-25:
+  parent: b2Cxm9wKgWrcusrGVPnU-22
+  value: name
+b2Cxm9wKgWrcusrGVPnU-26:
+  parent: '1'
+  value: StoreItems
+b2Cxm9wKgWrcusrGVPnU-27:
+  parent: b2Cxm9wKgWrcusrGVPnU-26
+  value: store_type
+b2Cxm9wKgWrcusrGVPnU-28:
+  parent: b2Cxm9wKgWrcusrGVPnU-26
+  value: item_name
+b2Cxm9wKgWrcusrGVPnU-29:
+  parent: b2Cxm9wKgWrcusrGVPnU-26
+  value: item_price
+b2Cxm9wKgWrcusrGVPnU-3:
+  parent: b2Cxm9wKgWrcusrGVPnU-1
+  value: type,CharField
+b2Cxm9wKgWrcusrGVPnU-30:
+  parent: '1'
+  value: TownName
+b2Cxm9wKgWrcusrGVPnU-31:
+  parent: b2Cxm9wKgWrcusrGVPnU-30
+  value: name_part
+b2Cxm9wKgWrcusrGVPnU-32:
+  parent: b2Cxm9wKgWrcusrGVPnU-30
+  value: name
+b2Cxm9wKgWrcusrGVPnU-34:
+  parent: b2Cxm9wKgWrcusrGVPnU-11
+  value: service_type
+b2Cxm9wKgWrcusrGVPnU-5:
+  parent: '1'
+  value: ServiceLocation
+b2Cxm9wKgWrcusrGVPnU-6:
+  parent: b2Cxm9wKgWrcusrGVPnU-5
+  value: service_type
+b2Cxm9wKgWrcusrGVPnU-8:
+  parent: b2Cxm9wKgWrcusrGVPnU-5
+  value: service
+b2Cxm9wKgWrcusrGVPnU-9:
+  parent: b2Cxm9wKgWrcusrGVPnU-5
+  value: service_price_low
