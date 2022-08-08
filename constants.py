@@ -157,3 +157,26 @@ config = {{project_name}}Config
 
 """
 )
+
+jobs_header = Template('''from nautobot.extras.jobs import IntegerVar, Job
+from yaml.loader import SafeLoader
+from {{project_name}}.models import {{ tables | join(', ')}}
+
+
+''')
+
+jobs_get_or_create=Template(
+    '''def update_{{table_name}}_get_or_create({{ columns | join(', ')}}):
+    table_update, created = {{table_name}}.objects.get_or_create({% for column in columns %}
+        {{column}}={{column}},{% endfor %})
+
+    if created:
+        self.log_success( f"Added to {{table_name}}: {{ log_message}}")
+    else:
+        self.log_info( f"Already Exists in {{table_name}}: {{ log_message }}")
+
+    return table_update
+
+
+'''
+)

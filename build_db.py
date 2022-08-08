@@ -125,7 +125,6 @@ def build_table_data(input):
         for each in output:
             if each["name"] == target:
                 each["column"].append(f"***ForeignKey:{source}***")
-
     return output
 
 
@@ -187,7 +186,6 @@ def build_models(table_data):
 
     pprint(feild_types_in_tables)
     for each in table_data:
-        # pprint (each)
         if "relationship" in each:
             continue
         table_name = normalise_table_name(each["name"])
@@ -255,6 +253,18 @@ def build_serializers(table_data, api_path):
         )
     filename = f"./{api_path}/serializers.py"
     to_doc_w(filename, output)
+
+
+def normalize_columns_names(columns):
+    normalized_columns = []
+    for column in columns:
+        column = normalize_column_name(column)
+        if column == None:
+            continue
+        column = column.replace(" ", "_")
+        normalized_columns.append(column)
+    return (normalized_columns)
+
 
 
 def build_filters(table_name):
@@ -345,3 +355,24 @@ def build_admin(table_data):
 
 
 build_admin(table_data)
+
+def build_jobs_get_or_create(table_data):
+    tables = []
+    for table in table_data:
+        tables.append(table['name'])
+    output = jobs_header.render(tables=tables, project_name=project_name)
+    for table in table_data:
+        table_name=table['name']
+        columns = table['column']
+        columns =normalize_columns_names(columns)
+    
+        log_message = ''
+        for column in columns:
+            log_message=log_message+"{"+column+"},"
+        log_message=log_message[0:-1]
+        output = output+jobs_get_or_create.render(table_name=table_name, columns=columns, log_message=log_message)
+            # pprint (table)
+    filename = f"./{project_name}_files/plugin/{project_name}/jobs.py"
+    to_doc_w(filename, output)
+
+build_jobs_get_or_create(table_data)
