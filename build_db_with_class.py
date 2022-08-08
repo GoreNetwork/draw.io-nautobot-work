@@ -12,6 +12,6 @@ project_name = os.environ.get("project_name")
 
 project = BuildNautobotProject(project_name)
 
-pprint (project.table_data)
+pprint(project.table_data)
 # project.build_project()
 project.full_build_project_with_help()
