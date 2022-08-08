@@ -3,6 +3,9 @@
 There is a demo here, sadly it's a little out of date:
 https://youtu.be/ZwiIgBtmoMU
 
+The goal is to making building a Nautobot plugin much easier.  The idea is you bulid the database in draw.io, then use that file to build out the plugin.
+
+the project name should be the same as the file name, but without the drawio part.   So for the file `test.drawio` file the project name would be `test`
 
 Run `python3 build_db_with_class.py`to build the info about the drawio file, it will prompt you for the name of the project (the name of the file minus the .drawio part)
 
@@ -36,9 +39,7 @@ There are 2 ways to build the project:
 
 
 
-This will give you all the files you need, and give instructions on what to do.
-`project = BuildNautobotProject(project_name)`
-`project.full_build_project_with_help()`
+
 
 
 
