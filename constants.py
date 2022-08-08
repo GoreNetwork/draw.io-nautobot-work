@@ -158,15 +158,17 @@ config = {{project_name}}Config
 """
 )
 
-jobs_header = Template('''from nautobot.extras.jobs import IntegerVar, Job
+jobs_header = Template(
+    """from nautobot.extras.jobs import IntegerVar, Job
 from yaml.loader import SafeLoader
 from {{project_name}}.models import {{ tables | join(', ')}}
 
 
-''')
+"""
+)
 
-jobs_get_or_create=Template(
-    '''def update_{{table_name}}_get_or_create({{ columns | join(', ')}}):
+jobs_get_or_create = Template(
+    """def update_{{table_name}}_get_or_create({{ columns | join(', ')}}):
     table_update, created = {{table_name}}.objects.get_or_create({% for column in columns %}
         {{column}}={{column}},{% endfor %})
 
@@ -178,5 +180,5 @@ jobs_get_or_create=Template(
     return table_update
 
 
-'''
+"""
 )

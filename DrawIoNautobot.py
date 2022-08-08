@@ -10,28 +10,31 @@ import os
 
 import os
 
+
 def countlines(start, lines=0, header=True, begin_start=None):
     if header:
-        print('{:>10} |{:>10} | {:<20}'.format('ADDED', 'TOTAL', 'FILE'))
-        print('{:->11}|{:->11}|{:->20}'.format('', '', ''))
+        print("{:>10} |{:>10} | {:<20}".format("ADDED", "TOTAL", "FILE"))
+        print("{:->11}|{:->11}|{:->20}".format("", "", ""))
 
     for thing in os.listdir(start):
         thing = os.path.join(start, thing)
         if os.path.isfile(thing):
-            if thing.endswith('.py'):
-                with open(thing, 'r') as f:
+            if thing.endswith(".py"):
+                with open(thing, "r") as f:
                     newlines = f.readlines()
                     newlines = len(newlines)
                     lines += newlines
 
                     if begin_start is not None:
-                        reldir_of_thing = '.' + thing.replace(begin_start, '')
+                        reldir_of_thing = "." + thing.replace(begin_start, "")
                     else:
-                        reldir_of_thing = '.' + thing.replace(start, '')
+                        reldir_of_thing = "." + thing.replace(start, "")
 
-                    print('{:>10} |{:>10} | {:<20}'.format(
-                            newlines, lines, reldir_of_thing))
-
+                    print(
+                        "{:>10} |{:>10} | {:<20}".format(
+                            newlines, lines, reldir_of_thing
+                        )
+                    )
 
     for thing in os.listdir(start):
         thing = os.path.join(start, thing)
@@ -45,12 +48,14 @@ def write_yml_file(dictionary, output_file_name):
     with open(output_file_name, "w") as outfile:
         yaml.dump(dictionary, outfile)
 
+
 def to_doc_w(file_name, varable):
     f = open(file_name, "w")
     f.write(varable)
     f.close()
 
-class ReadInDrawIoNautobot():
+
+class ReadInDrawIoNautobot:
     def __init__(self, project_name):
         self.project_name = project_name
         self.db_data_raw = self.readed_in_draw_io_file()
@@ -59,7 +64,7 @@ class ReadInDrawIoNautobot():
         self.tables = self.find_tables()
 
     def find_tables(self):
-        table_data=self.table_data
+        table_data = self.table_data
         tables = []
         for table in table_data:
             tables.append(table["name"])
@@ -79,7 +84,7 @@ class ReadInDrawIoNautobot():
                 continue
             column = column.replace(" ", "_")
             normalized_columns.append(column)
-        return (normalized_columns)
+        return normalized_columns
 
     def normalize_column_name(self, column):
         if "***ForeignKey" in column:
@@ -94,7 +99,7 @@ class ReadInDrawIoNautobot():
         return column
 
     def readed_in_draw_io_file(self):
-        filename=f"{self.project_name}.drawio"
+        filename = f"{self.project_name}.drawio"
         tree = ET.parse(filename)
         data = base64.b64decode(tree.find("diagram").text)
         xml = zlib.decompress(data, wbits=-15)
@@ -121,9 +126,6 @@ class ReadInDrawIoNautobot():
         write_yml_file(output, "flat_DB_data.yml")
 
         return output
-
-
-
 
     def find_table_value_from_column_value(self, input, key):
         parent_id = input[key]["parent"]
@@ -158,15 +160,16 @@ class ReadInDrawIoNautobot():
             for each in output:
                 if each["name"] == target:
                     each["column"].append(f"***ForeignKey:{source}***")
-        
+
         for table in output:
-            table['normalized_columns']= self.normalize_columns_names(table['column'])
+            table["normalized_columns"] = self.normalize_columns_names(table["column"])
 
         return output
 
+
 class BuildNautobotProject(ReadInDrawIoNautobot):
     def build_project_dict_structure(self):
-        project_name=self.project_name
+        project_name = self.project_name
         tmp_paths = [
             f"./{project_name}_files",
             f"./{project_name}_files/plugin",
@@ -177,7 +180,6 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             if os.path.exists(path) == False:
                 os.makedirs(path)
         self.api_path = f"./{project_name}_files/plugin/{project_name}/api"
-
 
     def normalize_column_name_for_models(self, column):
         if "***ForeignKey" in column:
@@ -195,7 +197,6 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_name = table_name.replace(" ", "_")
         return table_name
 
-
     def find_feild_types(self, table_data):
         feild_types_in_tables = []
         for each in table_data:
@@ -211,7 +212,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         return feild_types_in_tables
 
     def build_models(self):
-        project_name=self.project_name
+        project_name = self.project_name
         table_data = self.table_data
         defaults_for_fields = {
             # "name of feild type": {"default_value_name":"thing that needs a default value",
@@ -266,11 +267,10 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
 
         filename = f"./{project_name}_files/plugin/{project_name}/models.py"
         to_doc_w(filename, model_data)
-    
+
     def build__init__(self):
         file_name = f"./{self.api_path }/__init__.py"
         to_doc_w(file_name, "")
-
 
     def build_serializers(self):
         table_data = self.table_data
@@ -298,7 +298,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         to_doc_w(filename, output)
 
     def build_serializers(self):
-        table_data=self.table_data
+        table_data = self.table_data
         table_names = []
         for table in table_data:
             table_name = self.normalise_table_name(table["name"])
@@ -323,9 +323,9 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         to_doc_w(filename, output)
 
     def build_filters(self):
-        table_data=self.table_data
+        table_data = self.table_data
         tables = self.tables
-        project_name=self.project_name
+        project_name = self.project_name
         output = filter_imports.render(tables=tables)
 
         for table in table_data:
@@ -337,7 +337,9 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                 column = column.replace(" ", "_")
                 columns.append(column)
             table_name = self.normalise_table_name(table["name"])
-            output = output + filter_classes.render(table_name=table_name, columns=columns)
+            output = output + filter_classes.render(
+                table_name=table_name, columns=columns
+            )
         filename = f"./{project_name}_files/plugin/{project_name}/filters.py"
         to_doc_w(filename, output)
 
@@ -386,19 +388,21 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
     def build_jobs_get_or_create(self):
         tables = []
         for table in self.table_data:
-            tables.append(table['name'])
+            tables.append(table["name"])
         output = jobs_header.render(tables=tables, project_name=self.project_name)
         for table in self.table_data:
-            table_name=table['name']
-            columns = table['column']
-            columns =self.normalize_columns_names(columns)
-        
-            log_message = ''
+            table_name = table["name"]
+            columns = table["column"]
+            columns = self.normalize_columns_names(columns)
+
+            log_message = ""
             for column in columns:
-                log_message=log_message+"{"+column+"},"
-            log_message=log_message[0:-1]
-            output = output+jobs_get_or_create.render(table_name=table_name, columns=columns, log_message=log_message)
-                # pprint (table)
+                log_message = log_message + "{" + column + "},"
+            log_message = log_message[0:-1]
+            output = output + jobs_get_or_create.render(
+                table_name=table_name, columns=columns, log_message=log_message
+            )
+            # pprint (table)
         filename = f"./{self.project_name}_files/plugin/{self.project_name}/jobs.py"
         to_doc_w(filename, output)
 
@@ -432,18 +436,19 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         file_name = f"./{self.project_name}_files/plugin/setup.py"
         to_doc_w(file_name, setup_file_content)
 
-
         init_file_content = init_file.render(
             project_name=os.environ.get("project_name"),
             plugin_description=os.environ.get("plugin_description"),
             plugin_author=os.environ.get("plugin_author"),
         )
 
-        file_name = f"./{self.project_name}_files/plugin/{self.project_name}/__init__.py"
+        file_name = (
+            f"./{self.project_name}_files/plugin/{self.project_name}/__init__.py"
+        )
         to_doc_w(file_name, init_file_content)
-    
+
     def full_build_project_with_help(self):
-        project_name=self.project_name
+        project_name = self.project_name
         self.build_setup_files()
         default_location = "/opt/nautobot/"
         instructions = [
@@ -472,5 +477,5 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             print(each)
             input("Press return for next step: ")
         print("\n\n\n")
-        lines_saved=countlines(start=f"./{project_name}_files")
-        print (f"\n\nThis program saved you {lines_saved} lines of code")
+        lines_saved = countlines(start=f"./{project_name}_files")
+        print(f"\n\nThis program saved you {lines_saved} lines of code")
