@@ -43,17 +43,14 @@ def countlines(start, lines=0, header=True, begin_start=None):
 
     return lines
 
-
 def write_yml_file(dictionary, output_file_name):
     with open(output_file_name, "w") as outfile:
         yaml.dump(dictionary, outfile)
-
 
 def to_doc_w(file_name, varable):
     f = open(file_name, "w")
     f.write(varable)
     f.close()
-
 
 class ReadInDrawIoNautobot:
     def __init__(self, project_name):
@@ -62,6 +59,7 @@ class ReadInDrawIoNautobot:
         self.flat_data = self.build_flatened_data()
         self.table_data = self.build_table_data()
         self.tables = self.find_tables()
+        
 
     def find_tables(self):
         table_data = self.table_data
@@ -163,6 +161,7 @@ class ReadInDrawIoNautobot:
 
         for table in output:
             table["normalized_columns"] = self.normalize_columns_names(table["column"])
+            table['normalized_table_name']=self.normalise_table_name(table['name'])
 
         return output
 
@@ -198,14 +197,14 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         return table_name
 
     def find_feild_types(self, table_data):
+        # pprint (table_data)
         feild_types_in_tables = []
         for each in table_data:
             if "relationship" in each:
                 continue
             for column in each["column"]:
-                if "***ForeignKey" in column:
-                    continue
-                column = self.normalize_column_name_for_models(column)
+                if ',' in column:
+                    column=column.split(',')
                 if type(column) == list:
                     key_name, feild_type = column[0], column[1]
                     feild_types_in_tables.append(feild_type)
@@ -223,29 +222,30 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         }
 
         feild_types_in_tables = self.find_feild_types(table_data)
+        print(feild_types_in_tables)
+
         model_data = model_table_imports.render(
             feild_types_in_tables=feild_types_in_tables,
             defaults_for_fields=defaults_for_fields,
         )
 
-        pprint(feild_types_in_tables)
         for each in table_data:
             if "relationship" in each:
                 continue
-            table_name = self.normalise_table_name(each["name"])
-            # print (table_name)
+            table_name = each['normalized_table_name']
             model_data = model_data + model_class_head_template.render(
                 table_name=table_name
             )
             for column in each["column"]:
+                if "," in column:
+                    column = column.split(',')
                 feild_type = "TextField"
                 if "***ForeignKey" not in column:
                     if " " in column:
-                        print(table_name)
-                    column = self.normalize_column_name_for_models(column)
+                        column = self.normalize_column_name_for_models(column)
+                        print(column)
                     if type(column) == list:
                         key_name, feild_type = column[0], column[1]
-                        print(key_name, feild_type)
                         feild_type = feild_type.replace(" ", "")
                     elif column == None:
                         continue
@@ -276,21 +276,14 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_data = self.table_data
         table_names = []
         for table in table_data:
-            table_name = self.normalise_table_name(table["name"])
+            table_name = table["normalized_table_name"]
             table_names.append(table_name)
         output = seralizer_imports.render(
             project_name=project_name, table_names=table_names
         )
         for table in table_data:
-            columns = []
-            table_name = self.normalise_table_name(table["name"])
-
-            for column in table["column"]:
-                column = self.normalize_column_name(column)
-                if column == None:
-                    continue
-                column = column.replace(" ", "_")
-                columns.append(column)
+            columns = table["normalized_columns"]
+            table_name = table['normalized_table_name']
             output = output + serlizer_classes.render(
                 table_name=table_name, columns=columns
             )
@@ -301,21 +294,14 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_data = self.table_data
         table_names = []
         for table in table_data:
-            table_name = self.normalise_table_name(table["name"])
-            table_names.append(table_name)
+            table_names.append(table['normalized_table_name'])
         output = seralizer_imports.render(
             project_name=self.project_name, table_names=table_names
         )
         for table in table_data:
-            columns = []
-            table_name = self.normalise_table_name(table["name"])
+            columns = table["normalized_columns"]
+            table_name = table['normalized_table_name']
 
-            for column in table["column"]:
-                column = self.normalize_column_name(column)
-                if column == None:
-                    continue
-                column = column.replace(" ", "_")
-                columns.append(column)
             output = output + serlizer_classes.render(
                 table_name=table_name, columns=columns
             )
@@ -329,14 +315,8 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         output = filter_imports.render(tables=tables)
 
         for table in table_data:
-            columns = []
-            for column in table["column"]:
-                column = self.normalize_column_name(column)
-                if column == None:
-                    continue
-                column = column.replace(" ", "_")
-                columns.append(column)
-            table_name = self.normalise_table_name(table["name"])
+            columns = table["normalized_columns"]
+            table_name = table['normalized_table_name']
             output = output + filter_classes.render(
                 table_name=table_name, columns=columns
             )
@@ -348,7 +328,6 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         output = api_views_imports.render(tables=tables, project_name=self.project_name)
 
         for table in tables:
-            # table_name = normalise_table_name(table)
             output = output + api_classes_imports.render(table=table)
 
         filename = f"./{self.api_path }/views.py"
@@ -357,7 +336,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
     def build_api_urls(self):
         output = api_urls_imports.render(project_name=self.project_name)
         for each_table in self.table_data:
-            table_name = self.normalise_table_name(each_table["name"])
+            table_name = each_table['normalized_table_name']
             output = output + api_urls_classes.render(table_name=table_name)
         output = output + "urlpatterns = router.urls"
         filename = f"./{self.api_path }/urls.py"
@@ -372,12 +351,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         )
         for table in self.table_data:
             table_name = table["name"]
-            columns = []
-            for column in table["column"]:
-                column = self.normalize_column_name(column)
-                if column == None:
-                    continue
-                columns.append(column)
+            columns = table["normalized_columns"]
             admin_class = admin_class_template.render(
                 table_name=table_name, columns=columns
             )
@@ -392,9 +366,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         output = jobs_header.render(tables=tables, project_name=self.project_name)
         for table in self.table_data:
             table_name = table["name"]
-            columns = table["column"]
-            columns = self.normalize_columns_names(columns)
-
+            columns = table["normalized_columns"]
             log_message = ""
             for column in columns:
                 log_message = log_message + "{" + column + "},"
@@ -402,7 +374,6 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             output = output + jobs_get_or_create.render(
                 table_name=table_name, columns=columns, log_message=log_message
             )
-            # pprint (table)
         filename = f"./{self.project_name}_files/plugin/{self.project_name}/jobs.py"
         to_doc_w(filename, output)
 
@@ -425,10 +396,9 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         if os.environ.get("plugin_author") == None:
             plugin_author = input("Author of the plugin: ")
             os.environ["plugin_author"] = plugin_author
-        project_name = os.environ.get("project_name")
 
         setup_file_content = setup_file.render(
-            project_name=os.environ.get("project_name"),
+            project_name=self.project_name,
             plugin_description=os.environ.get("plugin_description"),
             plugin_author=os.environ.get("plugin_author"),
         )
