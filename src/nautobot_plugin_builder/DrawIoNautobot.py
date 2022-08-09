@@ -43,14 +43,17 @@ def countlines(start, lines=0, header=True, begin_start=None):
 
     return lines
 
+
 def write_yml_file(dictionary, output_file_name):
     with open(output_file_name, "w") as outfile:
         yaml.dump(dictionary, outfile)
+
 
 def to_doc_w(file_name, varable):
     f = open(file_name, "w")
     f.write(varable)
     f.close()
+
 
 class ReadInDrawIoNautobot:
     def __init__(self, project_name):
@@ -59,7 +62,6 @@ class ReadInDrawIoNautobot:
         self.flat_data = self.build_flatened_data()
         self.table_data = self.build_table_data()
         self.tables = self.find_tables()
-        
 
     def find_tables(self):
         table_data = self.table_data
@@ -161,7 +163,7 @@ class ReadInDrawIoNautobot:
 
         for table in output:
             table["normalized_columns"] = self.normalize_columns_names(table["column"])
-            table['normalized_table_name']=self.normalise_table_name(table['name'])
+            table["normalized_table_name"] = self.normalise_table_name(table["name"])
 
         return output
 
@@ -203,8 +205,8 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             if "relationship" in each:
                 continue
             for column in each["column"]:
-                if ',' in column:
-                    column=column.split(',')
+                if "," in column:
+                    column = column.split(",")
                 if type(column) == list:
                     key_name, feild_type = column[0], column[1]
                     feild_types_in_tables.append(feild_type)
@@ -232,13 +234,13 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         for each in table_data:
             if "relationship" in each:
                 continue
-            table_name = each['normalized_table_name']
+            table_name = each["normalized_table_name"]
             model_data = model_data + constants.model_class_head_template.render(
                 table_name=table_name
             )
             for column in each["column"]:
                 if "," in column:
-                    column = column.split(',')
+                    column = column.split(",")
                 feild_type = "TextField"
                 if "***ForeignKey" not in column:
                     if " " in column:
@@ -251,18 +253,24 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                         continue
                     else:
                         key_name = column
-                    model_data = model_data + constants.model_class_body_non_foreign_key.render(
-                        column=key_name,
-                        feild_type=feild_type,
-                        defaults_for_fields=defaults_for_fields,
+                    model_data = (
+                        model_data
+                        + constants.model_class_body_non_foreign_key.render(
+                            column=key_name,
+                            feild_type=feild_type,
+                            defaults_for_fields=defaults_for_fields,
+                        )
                     )
                 else:
                     source_table = self.pull_source_table_for_fk(column)
                     key_name = f"{source_table}_FK"
-                    model_data = model_data + constants.model_class_body_foreign_key.render(
-                        project_name=project_name,
-                        source_table=source_table,
-                        key_name=key_name,
+                    model_data = (
+                        model_data
+                        + constants.model_class_body_foreign_key.render(
+                            project_name=project_name,
+                            source_table=source_table,
+                            key_name=key_name,
+                        )
                     )
 
         filename = f"./{project_name}_files/plugin/{project_name}/models.py"
@@ -283,7 +291,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         )
         for table in table_data:
             columns = table["normalized_columns"]
-            table_name = table['normalized_table_name']
+            table_name = table["normalized_table_name"]
             output = output + constants.serlizer_classes.render(
                 table_name=table_name, columns=columns
             )
@@ -294,13 +302,13 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_data = self.table_data
         table_names = []
         for table in table_data:
-            table_names.append(table['normalized_table_name'])
+            table_names.append(table["normalized_table_name"])
         output = constants.seralizer_imports.render(
             project_name=self.project_name, table_names=table_names
         )
         for table in table_data:
             columns = table["normalized_columns"]
-            table_name = table['normalized_table_name']
+            table_name = table["normalized_table_name"]
 
             output = output + constants.serlizer_classes.render(
                 table_name=table_name, columns=columns
@@ -316,7 +324,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
 
         for table in table_data:
             columns = table["normalized_columns"]
-            table_name = table['normalized_table_name']
+            table_name = table["normalized_table_name"]
             output = output + constants.filter_classes.render(
                 table_name=table_name, columns=columns
             )
@@ -325,7 +333,9 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
 
     def build_api_views(self):
         tables = self.tables
-        output = constants.api_views_imports.render(tables=tables, project_name=self.project_name)
+        output = constants.api_views_imports.render(
+            tables=tables, project_name=self.project_name
+        )
 
         for table in tables:
             output = output + constants.api_classes_imports.render(table=table)
@@ -336,7 +346,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
     def build_api_urls(self):
         output = constants.api_urls_imports.render(project_name=self.project_name)
         for each_table in self.table_data:
-            table_name = each_table['normalized_table_name']
+            table_name = each_table["normalized_table_name"]
             output = output + constants.api_urls_classes.render(table_name=table_name)
         output = output + "urlpatterns = router.urls"
         filename = f"./{self.api_path }/urls.py"
@@ -363,7 +373,9 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         tables = []
         for table in self.table_data:
             tables.append(table["name"])
-        output = constants.jobs_header.render(tables=tables, project_name=self.project_name)
+        output = constants.jobs_header.render(
+            tables=tables, project_name=self.project_name
+        )
         for table in self.table_data:
             table_name = table["name"]
             columns = table["normalized_columns"]
