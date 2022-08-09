@@ -1,4 +1,4 @@
-from constants import *
+from . import constants
 import zlib
 import base64
 import xml.etree.ElementTree as ET
@@ -224,7 +224,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         feild_types_in_tables = self.find_feild_types(table_data)
         print(feild_types_in_tables)
 
-        model_data = model_table_imports.render(
+        model_data = constants.model_table_imports.render(
             feild_types_in_tables=feild_types_in_tables,
             defaults_for_fields=defaults_for_fields,
         )
@@ -233,7 +233,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             if "relationship" in each:
                 continue
             table_name = each['normalized_table_name']
-            model_data = model_data + model_class_head_template.render(
+            model_data = model_data + constants.model_class_head_template.render(
                 table_name=table_name
             )
             for column in each["column"]:
@@ -251,7 +251,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                         continue
                     else:
                         key_name = column
-                    model_data = model_data + model_class_body_non_foreign_key.render(
+                    model_data = model_data + constants.model_class_body_non_foreign_key.render(
                         column=key_name,
                         feild_type=feild_type,
                         defaults_for_fields=defaults_for_fields,
@@ -259,7 +259,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                 else:
                     source_table = self.pull_source_table_for_fk(column)
                     key_name = f"{source_table}_FK"
-                    model_data = model_data + model_class_body_foreign_key.render(
+                    model_data = model_data + constants.model_class_body_foreign_key.render(
                         project_name=project_name,
                         source_table=source_table,
                         key_name=key_name,
@@ -278,13 +278,13 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         for table in table_data:
             table_name = table["normalized_table_name"]
             table_names.append(table_name)
-        output = seralizer_imports.render(
+        output = constants.seralizer_imports.render(
             project_name=project_name, table_names=table_names
         )
         for table in table_data:
             columns = table["normalized_columns"]
             table_name = table['normalized_table_name']
-            output = output + serlizer_classes.render(
+            output = output + constants.serlizer_classes.render(
                 table_name=table_name, columns=columns
             )
         filename = f"./{self.api_path}/serializers.py"
@@ -295,14 +295,14 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_names = []
         for table in table_data:
             table_names.append(table['normalized_table_name'])
-        output = seralizer_imports.render(
+        output = constants.seralizer_imports.render(
             project_name=self.project_name, table_names=table_names
         )
         for table in table_data:
             columns = table["normalized_columns"]
             table_name = table['normalized_table_name']
 
-            output = output + serlizer_classes.render(
+            output = output + constants.serlizer_classes.render(
                 table_name=table_name, columns=columns
             )
         filename = f"./{self.api_path}/serializers.py"
@@ -312,12 +312,12 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_data = self.table_data
         tables = self.tables
         project_name = self.project_name
-        output = filter_imports.render(tables=tables)
+        output = constants.filter_imports.render(tables=tables)
 
         for table in table_data:
             columns = table["normalized_columns"]
             table_name = table['normalized_table_name']
-            output = output + filter_classes.render(
+            output = output + constants.filter_classes.render(
                 table_name=table_name, columns=columns
             )
         filename = f"./{project_name}_files/plugin/{project_name}/filters.py"
@@ -325,19 +325,19 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
 
     def build_api_views(self):
         tables = self.tables
-        output = api_views_imports.render(tables=tables, project_name=self.project_name)
+        output = constants.api_views_imports.render(tables=tables, project_name=self.project_name)
 
         for table in tables:
-            output = output + api_classes_imports.render(table=table)
+            output = output + constants.api_classes_imports.render(table=table)
 
         filename = f"./{self.api_path }/views.py"
         to_doc_w(filename, output)
 
     def build_api_urls(self):
-        output = api_urls_imports.render(project_name=self.project_name)
+        output = constants.api_urls_imports.render(project_name=self.project_name)
         for each_table in self.table_data:
             table_name = each_table['normalized_table_name']
-            output = output + api_urls_classes.render(table_name=table_name)
+            output = output + constants.api_urls_classes.render(table_name=table_name)
         output = output + "urlpatterns = router.urls"
         filename = f"./{self.api_path }/urls.py"
         to_doc_w(filename, output)
@@ -346,13 +346,13 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_name_list = []
         for table in self.table_data:
             table_name_list.append(table["name"])
-        output = admin_table_imports.render(
+        output = constants.admin_table_imports.render(
             table_name_list=table_name_list, project_name=self.project_name
         )
         for table in self.table_data:
             table_name = table["name"]
             columns = table["normalized_columns"]
-            admin_class = admin_class_template.render(
+            admin_class = constants.admin_class_template.render(
                 table_name=table_name, columns=columns
             )
             output = f"{output} {admin_class}"
@@ -363,7 +363,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         tables = []
         for table in self.table_data:
             tables.append(table["name"])
-        output = jobs_header.render(tables=tables, project_name=self.project_name)
+        output = constants.jobs_header.render(tables=tables, project_name=self.project_name)
         for table in self.table_data:
             table_name = table["name"]
             columns = table["normalized_columns"]
@@ -371,7 +371,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             for column in columns:
                 log_message = log_message + "{" + column + "},"
             log_message = log_message[0:-1]
-            output = output + jobs_get_or_create.render(
+            output = output + constants.jobs_get_or_create.render(
                 table_name=table_name, columns=columns, log_message=log_message
             )
         filename = f"./{self.project_name}_files/plugin/{self.project_name}/jobs.py"
@@ -397,7 +397,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             plugin_author = input("Author of the plugin: ")
             os.environ["plugin_author"] = plugin_author
 
-        setup_file_content = setup_file.render(
+        setup_file_content = constants.setup_file.render(
             project_name=self.project_name,
             plugin_description=os.environ.get("plugin_description"),
             plugin_author=os.environ.get("plugin_author"),
@@ -406,7 +406,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         file_name = f"./{self.project_name}_files/plugin/setup.py"
         to_doc_w(file_name, setup_file_content)
 
-        init_file_content = init_file.render(
+        init_file_content = constants.init_file.render(
             project_name=os.environ.get("project_name"),
             plugin_description=os.environ.get("plugin_description"),
             plugin_author=os.environ.get("plugin_author"),
