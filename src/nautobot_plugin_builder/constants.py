@@ -37,16 +37,13 @@ class {{table_name}}(model_type):
 )
 
 model_class_body_non_foreign_key = Template(
-    """{% if feild_type in defaults_for_fields %}
-    {{ column }}=models.{{feild_type}}({{defaults_for_fields[feild_type]["default_value_name"]}}={{feild_type}}_default){%- else %}
-    {{ column }}=models.{{feild_type}}(){%- endif %}
-"""
+    """
+    {{ column }}=models.{{feild_type}}({{set_default_based_on_field_type}})"""
 )
 
 model_class_body_foreign_key = Template(
     """
-    {{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete)
-"""
+    {% if '.' not in source_table %}{{ key_name }}=models.ForeignKey("{{ project_name }}.{{source_table}}", on_delete=default_on_delete){%- endif %}{% if '.' in source_table %}{{ key_name }}=models.ForeignKey("{{source_table}}", on_delete=default_on_delete){%- endif %}"""
 )
 
 seralizer_imports = Template(
@@ -181,4 +178,20 @@ jobs_get_or_create = Template(
 
 
 """
+)
+
+form_header = Template("""from django import forms
+from django.forms import ModelForm
+from .models import  {{ tables | join(', ')}}
+"""     )
+
+form_top = Template(
+    """
+
+class {{table_name}}Form(ModelForm):
+    class Meta:
+        model = {{table_name}}
+        fields = (\"{{columns | join('", "')}}\")
+        widgets = {
+            """
 )

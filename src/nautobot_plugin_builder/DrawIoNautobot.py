@@ -1,3 +1,4 @@
+from pyparsing import col
 from . import constants
 import zlib
 import base64
@@ -62,6 +63,8 @@ class ReadInDrawIoNautobot:
         self.flat_data = self.build_flatened_data()
         self.table_data = self.build_table_data()
         self.tables = self.find_tables()
+        # tables_with_column_name_type is new and can probably be used to clean up a lot of really ugly code
+        self.tables_with_column_name_type = self.build_tables_with_column_name_type()
 
     def find_tables(self):
         table_data = self.table_data
@@ -74,6 +77,8 @@ class ReadInDrawIoNautobot:
         column = column.replace("*", "")
         column = column.replace("ForeignKey:", "")
         column = column.replace(" ", "_")
+        if column[0]=='!':
+            column=column[1:]
         return column
 
     def normalize_columns_names(self, columns):
@@ -83,7 +88,10 @@ class ReadInDrawIoNautobot:
             if column == None:
                 continue
             column = column.replace(" ", "_")
-            normalized_columns.append(column)
+            if '.' in column:
+                column = column.split('.')[-1]
+            if column not in normalized_columns:
+                normalized_columns.append(column)
         return normalized_columns
 
     def normalize_column_name(self, column):
@@ -167,21 +175,6 @@ class ReadInDrawIoNautobot:
 
         return output
 
-
-class BuildNautobotProject(ReadInDrawIoNautobot):
-    def build_project_dict_structure(self):
-        project_name = self.project_name
-        tmp_paths = [
-            f"./{project_name}_files",
-            f"./{project_name}_files/plugin",
-            f"./{project_name}_files/plugin/{project_name}",
-            f"./{project_name}_files/plugin/{project_name}/api",
-        ]
-        for path in tmp_paths:
-            if os.path.exists(path) == False:
-                os.makedirs(path)
-        self.api_path = f"./{project_name}_files/plugin/{project_name}/api"
-
     def normalize_column_name_for_models(self, column):
         if "***ForeignKey" in column:
             source_table = self.pull_source_table_for_fk(column)
@@ -198,20 +191,94 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         table_name = table_name.replace(" ", "_")
         return table_name
 
-    def find_feild_types(self, table_data):
-        # pprint (table_data)
+    def find_feild_types(self, table_data, defaults_for_fields):
         feild_types_in_tables = []
         for each in table_data:
             if "relationship" in each:
                 continue
             for column in each["column"]:
+                column = column.replace(' ', '')
                 if "," in column:
                     column = column.split(",")
                 if type(column) == list:
                     key_name, feild_type = column[0], column[1]
-                    feild_types_in_tables.append(feild_type)
+                    if defaults_for_fields[feild_type] != None:
+                        feild_types_in_tables.append(feild_type)
+                    
         return feild_types_in_tables
 
+    def remove_forign_tables(self):
+        tmp_list = []
+        for table in self.table_data:
+            if "." in table['name']:
+                continue
+            else:
+                tmp_list.append(table)
+        self.table_data=tmp_list
+        tmp_list=[]
+        for table in self.tables:
+            if "." in table:
+                continue
+            else:
+                tmp_list.append(table)
+        self.tables=tmp_list
+
+    def build_tables_with_column_name_type(self):
+        self.tables_with_column_name_type=[]
+        for table in self.table_data:
+            temp_dict={}
+            table_name = self.normalise_table_name(table['name'])
+            temp_dict['table_name']=table_name
+            temp_dict['columns']=[]
+            for column in table['column']:
+                if "PK" in column:
+                    continue
+                if "_FK" in column:
+                    continue
+                
+                column_dict = {}
+                columns_data = column.split(',')
+                if len(columns_data)==1 and "***" not in column:
+                    column_dict['column_name']= column
+                    column_dict['column_type']= 'TextField'
+                if len(columns_data)==2:
+                    column_dict['column_name'], column_dict['column_type'] = columns_data
+                if "***ForeignKey" in column:
+                    source_table = self.pull_source_table_for_fk(column)
+                    column = f"{source_table}_FK"
+                    column_dict['column_name']= self.normalize_column_name_for_models(column)
+                    column_dict['column_name']= self.pull_key_name(column_dict['column_name'])
+
+                    column_dict['source_table']=source_table
+                    column_dict['column_type']  = 'ForeignKey'
+                temp_dict["columns"].append(column_dict)
+            self.tables_with_column_name_type.append(temp_dict)
+        # self.tables_with_column_name_type
+        return self.tables_with_column_name_type
+                
+
+
+class BuildNautobotProject(ReadInDrawIoNautobot):
+
+
+
+    def build_project_dict_structure(self):
+        project_name = self.project_name
+        tmp_paths = [
+            f"./{project_name}_files",
+            f"./{project_name}_files/plugin",
+            f"./{project_name}_files/plugin/{project_name}",
+            f"./{project_name}_files/plugin/{project_name}/templates",
+            f"./{project_name}_files/plugin/{project_name}/api",
+        ]
+        for path in tmp_paths:
+            if os.path.exists(path) == False:
+                os.makedirs(path)
+        self.api_path = f"./{project_name}_files/plugin/{project_name}/api"
+
+
+
+    
     def build_models(self):
         project_name = self.project_name
         table_data = self.table_data
@@ -221,9 +288,12 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
             "CharField": {"default_value_name": "max_length", "default_value": "100"},
             "DateField": {"default_value_name": "auto_now", "default_value": "False"},
             "FilePathField": {"default_value_name": "path", "default_value": "Ted"},
+            "JSONField":{"default_value_name": None, "default_value": None},
+            "TextField":{"default_value_name": None, "default_value": None},
+
         }
 
-        feild_types_in_tables = self.find_feild_types(table_data)
+        feild_types_in_tables = self.find_feild_types(table_data, defaults_for_fields)
         print(feild_types_in_tables)
 
         model_data = constants.model_table_imports.render(
@@ -232,6 +302,10 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         )
 
         for each in table_data:
+            
+            # Table names with . in them are probably from another plugin/the core, and are being refrenced due to a FK that should be there.
+            if "." in each['name']:
+                continue
             if "relationship" in each:
                 continue
             table_name = each["normalized_table_name"]
@@ -239,13 +313,14 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                 table_name=table_name
             )
             for column in each["column"]:
+                if column=="PK" or column[-3:]=="_FK":
+                    continue
                 if "," in column:
                     column = column.split(",")
                 feild_type = "TextField"
                 if "***ForeignKey" not in column:
                     if " " in column:
                         column = self.normalize_column_name_for_models(column)
-                        print(column)
                     if type(column) == list:
                         key_name, feild_type = column[0], column[1]
                         feild_type = feild_type.replace(" ", "")
@@ -253,17 +328,22 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
                         continue
                     else:
                         key_name = column
+                    set_default_based_on_field_type=''
+                    if defaults_for_fields[feild_type]["default_value_name"]!=None:
+                        set_default_based_on_field_type=f"{defaults_for_fields[feild_type]['default_value_name']}={feild_type}_default"
+
                     model_data = (
                         model_data
                         + constants.model_class_body_non_foreign_key.render(
                             column=key_name,
                             feild_type=feild_type,
-                            defaults_for_fields=defaults_for_fields,
+                            set_default_based_on_field_type=set_default_based_on_field_type,
                         )
                     )
                 else:
                     source_table = self.pull_source_table_for_fk(column)
                     key_name = f"{source_table}_FK"
+                    key_name=self.pull_key_name(key_name)
                     model_data = (
                         model_data
                         + constants.model_class_body_foreign_key.render(
@@ -275,6 +355,11 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
 
         filename = f"./{project_name}_files/plugin/{project_name}/models.py"
         to_doc_w(filename, model_data)
+
+    def pull_key_name(self, key_name):
+        if '.' in key_name:
+            key_name=key_name.split('.')[-1]
+        return key_name
 
     def build__init__(self):
         file_name = f"./{self.api_path }/__init__.py"
@@ -389,9 +474,13 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         filename = f"./{self.project_name}_files/plugin/{self.project_name}/jobs.py"
         to_doc_w(filename, output)
 
+    
+
+
     def build_project(self):
         self.build_project_dict_structure()
         self.build_models()
+        self.remove_forign_tables()
         self.build__init__()
         self.build_serializers()
         self.build_filters()
@@ -399,6 +488,8 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         self.build_api_urls()
         self.build_admin()
         self.build_jobs_get_or_create()
+        self.build_forms()
+        self.build_tables_with_column_name_type()
 
     def build_setup_files(self):
         project_name = self.project_name
@@ -419,7 +510,7 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         to_doc_w(file_name, setup_file_content)
 
         init_file_content = constants.init_file.render(
-            project_name=os.environ.get("project_name"),
+            project_name=self.project_name,
             plugin_description=os.environ.get("plugin_description"),
             plugin_author=os.environ.get("plugin_author"),
         )
@@ -461,3 +552,17 @@ class BuildNautobotProject(ReadInDrawIoNautobot):
         print("\n\n\n")
         lines_saved = countlines(start=f"./{project_name}_files")
         print(f"\n\nThis program saved you {lines_saved} lines of code")
+
+    def build_forms(self):
+        forms = constants.form_header.render(tables = self.tables)
+        for table in self.table_data:
+            table_name = table['normalized_table_name']
+            forms = forms+constants.form_top.render(table_name=table_name, columns = table['normalized_columns'])
+
+
+        file_name = (
+            f"./{self.project_name}_files/plugin/{self.project_name}/forms.py"
+        )
+        to_doc_w(file_name, forms)
+
+        # self.normalize_columns_names(table["column"])
